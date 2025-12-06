@@ -36,12 +36,9 @@ jobs:
       - name: Download previous ticket history
         continue-on-error: true
         run: |
-          if git log --all --oneline -- notified_tickets.json | head -1; then
-            git show HEAD:notified_tickets.json > notified_tickets.json 2>/dev/null || true
-            echo "✓ Loaded previous ticket history"
-          else
-            echo "ℹ️  No previous history found (first run)"
-          fi
+          git fetch origin main 2>/dev/null || true
+          git show origin/main:notified_tickets.json > notified_tickets.json 2>/dev/null || echo "[]" > notified_tickets.json
+          echo "✓ Loaded previous ticket history"
 
       - name: Run ticket notifier check
         env:
@@ -52,17 +49,17 @@ jobs:
           python run_check.py
 
       - name: Commit ticket history
-        continue-on-error: true
         run: |
           git config user.email "github-actions@bot.local"
           git config user.name "GitHub Actions"
-          git add notified_tickets.json || true
-          git commit -m "Update ticket history [skip ci]" || true
-
-      - name: Push ticket history
+          git add -f notified_tickets.json
+          if git diff --cached --quiet; then
+            echo "No changes to history"
+          else
+            git commit -m "Update ticket history [skip ci]"
+            git push origin main
+          fi
         continue-on-error: true
-        run: |
-          git push origin main || true
 
       - name: Log results
         if: always()

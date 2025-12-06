@@ -48,8 +48,6 @@ ticket_notifier.log
 .env.local
 .env.*.local
 
-# Ticket history (tracks which tickets were already notified)
-notified_tickets.json
-
-# Artifacts from GitHub Actions
+# Artifacts
 artifacts/
+*.zip

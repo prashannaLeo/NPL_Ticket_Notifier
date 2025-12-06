@@ -13,11 +13,14 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.11'
+        cache: 'pip'
         
     - name: Install dependencies
       run: |
@@ -29,6 +32,7 @@ jobs:
       run: |
         git fetch origin main 2>/dev/null || true
         git show origin/main:notified_tickets.json > notified_tickets.json 2>/dev/null || echo "[]" > notified_tickets.json
+        ls -la notified_tickets.json
         
     - name: Run ticket checker
       env:
@@ -39,17 +43,21 @@ jobs:
       
     - name: Commit and push updated history
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add notified_tickets.json
-        git commit -m "Update ticket history - $(date)" || true
-        git push origin main || true
+        git config --local user.email "github-actions@bot.local"
+        git config --local user.name "GitHub Actions"
+        git add -f notified_tickets.json
+        if git diff --cached --quiet; then
+          echo "No changes to history"
+        else
+          git commit -m "Update ticket history [skip ci]"
+          git push origin main
+        fi
       continue-on-error: true
       
     - name: Upload logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: check-logs
+        name: check-logs-${{ github.run_number }}
         path: check_log.txt
         retention-days: 7
