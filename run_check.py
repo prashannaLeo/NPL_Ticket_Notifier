@@ -2,11 +2,14 @@
 """
 GitHub Actions runner script for NPL Ticket Notifier
 Minimal, focused script for automated ticket checking
+Tracks previously notified tickets to avoid duplicate alerts
 """
 
 import os
 import sys
 import logging
+import json
+import time
 from datetime import datetime
 from scraper import KhaltiScraper
 from telegram_notifier import TelegramNotifier
@@ -22,6 +25,32 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+def get_ticket_hash(ticket_info: dict) -> str:
+    """Create a unique hash for a ticket"""
+    date_field = ticket_info.get('dates') or ticket_info.get('date', '')
+    return f"{ticket_info['title']}_{date_field}_{ticket_info.get('price', '')}"
+
+def load_ticket_history() -> set:
+    """Load previously notified tickets"""
+    history_file = 'notified_tickets.json'
+    if os.path.exists(history_file):
+        try:
+            with open(history_file, 'r') as f:
+                data = json.load(f)
+                logger.info(f"Loaded {len(data)} previously notified tickets")
+                return set(data)
+        except Exception as e:
+            logger.warning(f"Could not load ticket history: {e}")
+    return set()
+
+def save_ticket_history(notified: set):
+    """Save notified tickets to file"""
+    try:
+        with open('notified_tickets.json', 'w') as f:
+            json.dump(list(notified), f, indent=2)
+    except Exception as e:
+        logger.error(f"Could not save ticket history: {e}")
 
 def main():
     """Check for tickets and notify"""
@@ -46,6 +75,10 @@ def main():
         return 1
     
     try:
+        # Load ticket history
+        logger.info("Loading ticket history...")
+        notified_tickets = load_ticket_history()
+        
         # Initialize components
         logger.info("Initializing components...")
         scraper = KhaltiScraper(event_id)
@@ -60,29 +93,40 @@ def main():
             logger.info("✓ No available tickets at this time")
             return 0
         
-        # Send notifications
+        # Check for NEW tickets only
         logger.info(f"✓ Found {len(available_tickets)} available ticket(s)")
+        new_tickets_found = False
         
         for i, ticket in enumerate(available_tickets, 1):
+            ticket_hash = get_ticket_hash(ticket)
+            
             logger.info(f"\n[{i}] {ticket.get('title')}")
             logger.info(f"    Status: {ticket.get('status')}")
             logger.info(f"    Price: {ticket.get('price')}")
             
-            # Send voice alert
-            logger.info("    Sending voice alert...")
-            voice_notifier.send_alert_call(ticket)
-            
-            # Wait a bit
-            import time
-            time.sleep(1)
-            
-            # Send text notification
-            logger.info("    Sending text notification...")
-            text_notifier.send_ticket_notification(ticket)
-            
-            time.sleep(1)
+            # Only notify about NEW tickets
+            if ticket_hash not in notified_tickets:
+                logger.info("    ⭐ NEW TICKET - Sending alerts...")
+                new_tickets_found = True
+                
+                # Send voice alert
+                voice_notifier.send_alert_call(ticket)
+                time.sleep(1)
+                
+                # Send text notification
+                text_notifier.send_ticket_notification(ticket)
+                
+                # Track this ticket
+                notified_tickets.add(ticket_hash)
+                save_ticket_history(notified_tickets)
+                time.sleep(1)
+            else:
+                logger.info("    ℹ️  Already notified about this ticket - skipping")
         
-        logger.info("\n✓ All notifications sent successfully")
+        if new_tickets_found:
+            logger.info("\n✓ New ticket notifications sent successfully")
+        else:
+            logger.info("\n✓ No new tickets found (same as before)")
         return 0
         
     except Exception as e:

@@ -4,6 +4,8 @@ Main notifier script - Monitors Khalti events and sends Telegram notifications
 
 import logging
 import time
+import json
+import os
 from datetime import datetime
 from scraper import KhaltiScraper
 from telegram_notifier import TelegramNotifier
@@ -33,7 +35,28 @@ class TicketNotifier:
         self.scraper = KhaltiScraper(KHALTI_EVENT_ID)
         self.notifier = TelegramNotifier(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
         self.voice_notifier = VoiceNotifier(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
-        self.notified_tickets = set()  # Track which tickets we've already notified about
+        self.history_file = 'notified_tickets.json'
+        self.notified_tickets = self._load_ticket_history()  # Load from persistent storage
+
+    def _load_ticket_history(self) -> set:
+        """Load previously notified tickets from file"""
+        if os.path.exists(self.history_file):
+            try:
+                with open(self.history_file, 'r') as f:
+                    data = json.load(f)
+                    logger.info(f"Loaded {len(data)} previously notified tickets")
+                    return set(data)
+            except Exception as e:
+                logger.warning(f"Could not load ticket history: {e}")
+        return set()
+
+    def _save_ticket_history(self):
+        """Save notified tickets to persistent storage"""
+        try:
+            with open(self.history_file, 'w') as f:
+                json.dump(list(self.notified_tickets), f, indent=2)
+        except Exception as e:
+            logger.error(f"Could not save ticket history: {e}")
 
     def get_ticket_hash(self, ticket_info: dict) -> str:
         """Create a unique hash for a ticket to avoid duplicate notifications"""
@@ -42,7 +65,7 @@ class TicketNotifier:
         return f"{ticket_info['title']}_{date_field}_{ticket_info.get('price', '')}"
 
     def check_and_notify(self):
-        """Check for available tickets and send notifications"""
+        """Check for available tickets and send notifications only for new ones"""
         logger.info("Checking for available tickets...")
 
         try:
@@ -50,12 +73,15 @@ class TicketNotifier:
 
             if available_tickets:
                 logger.info(f"Found {len(available_tickets)} available ticket(s)")
+                new_tickets_found = False
+                
                 for ticket in available_tickets:
                     ticket_hash = self.get_ticket_hash(ticket)
 
-                    # Only notify about new tickets
+                    # Only notify about NEW tickets (not seen before)
                     if ticket_hash not in self.notified_tickets:
-                        logger.info(f"Sending notification for: {ticket['title']}")
+                        logger.info(f"NEW TICKET FOUND: {ticket['title']}")
+                        new_tickets_found = True
                         
                         # Send voice alert first (urgent)
                         self.voice_notifier.send_alert_call(ticket)
@@ -64,7 +90,14 @@ class TicketNotifier:
                         # Then send detailed message
                         if self.notifier.send_ticket_notification(ticket):
                             self.notified_tickets.add(ticket_hash)
+                            self._save_ticket_history()  # Persist the new ticket
                         time.sleep(1)  # Rate limit to avoid Telegram API issues
+                    else:
+                        # Same ticket as before - no notification
+                        logger.debug(f"Already notified about: {ticket['title']}")
+                
+                if not new_tickets_found:
+                    logger.info("Available tickets are same as before - no new notifications")
             else:
                 logger.info("No available tickets found")
 
