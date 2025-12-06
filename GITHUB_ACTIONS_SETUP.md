@@ -9,7 +9,7 @@ This project monitors Khalti events API and sends:
 - 📱 **Text messages** with full ticket information
 - 🔗 Direct link to purchase tickets
 
-Runs automatically every 5 minutes on GitHub Actions. **No server needed!**
+Runs automatically **every 1 minute** on GitHub Actions. **No server needed!**
 
 ## 🚀 Quick Setup (GitHub Actions)
 
@@ -25,12 +25,15 @@ Go to **Settings → Secrets and variables → Actions** and add:
 | Secret Name | Value |
 |------------|-------|
 | `TELEGRAM_BOT_TOKEN` | Your Telegram bot token |
-| `TELEGRAM_CHAT_ID` | Your Telegram chat ID |
-| `KHALTI_EVENT_URL` | Event URL to monitor |
+| `TELEGRAM_CHAT_ID` | Your Telegram chat ID (personal or group) |
+| `KHALTI_EVENT_ID` | Event ID to monitor (e.g., ET25AMY4AUYM) |
 
 **How to get these:**
-1. **Bot Token & Chat ID**: Message [@BotFather](https://t.me/botfather) on Telegram
-2. **Event URL**: Copy from Khalti website (default: `https://events.khalti.com/events/ET25AMY4AUYM?sub_event=true`)
+1. **Bot Token**: Message [@BotFather](https://t.me/botfather) on Telegram → `/newbot`
+2. **Chat ID**: 
+   - Personal: Message [@userinfobot](https://t.me/userinfobot)
+   - Group: Add bot to group, visit `https://api.telegram.org/botYOUR_TOKEN/getUpdates` and find negative `chat.id`
+3. **Event ID**: Copy from Khalti URL (e.g., `events.khalti.com/events/ET25AMY4AUYM`)
 
 ### Step 3: Push to Trigger
 ```bash
@@ -39,7 +42,7 @@ git commit -m "Configure GitHub Actions"
 git push origin main
 ```
 
-That's it! ✅ The notifier will now run every 5 minutes.
+That's it! ✅ The notifier will now run **every 1 minute** automatically.
 
 ## 📊 Monitoring
 
@@ -61,30 +64,38 @@ Click any run to see:
 Edit `.env.example` → `.env` (for local testing only):
 
 ```env
-KHALTI_EVENT_URL=https://events.khalti.com/events/ET25AMY4AUYM?sub_event=true
+KHALTI_EVENT_ID=ET25AMY4AUYM
 TELEGRAM_BOT_TOKEN=your_token
 TELEGRAM_CHAT_ID=your_chat_id
-CHECK_INTERVAL_SECONDS=60
+CHECK_INTERVAL_SECONDS=30        # Local: Check every 30 seconds
+TIMEOUT_SECONDS=10
 ```
 
-For GitHub Actions, use **Secrets** instead.
+For GitHub Actions, use **Secrets** instead (as shown above).
+
+## 🎯 Check Frequency
+
+- **Local monitoring**: Every 30 seconds (for faster detection)
+- **GitHub Actions**: Every 1 minute (optimized for high-demand sales)
 
 ## 📁 Project Structure
 
 ```
 .
 ├── .github/workflows/          # GitHub Actions workflows
-│   ├── deploy.yml              # Main deployment workflow
-│   └── monitor.yml             # Continuous monitoring (every 5 mins)
+│   ├── deploy.yml              # Main deployment workflow (on push)
+│   └── monitor.yml             # Continuous monitoring (every 1 minute)
 ├── scraper.py                  # Khalti API scraper
 ├── telegram_notifier.py        # Text message notifications
 ├── voice_notifier.py           # Voice alert system
 ├── config.py                   # Configuration loader
 ├── run_check.py                # GitHub Actions runner
+├── main.py                     # Local continuous monitoring
 ├── requirements.txt            # Python dependencies
 ├── .env.example                # Example environment variables
 ├── .gitignore                  # Git ignore patterns
-└── README.md                   # This file
+├── notified_tickets.json       # Ticket history (auto-managed)
+└── README.md                   # Documentation
 ```
 
 ## 🧪 Local Testing

@@ -1,22 +1,48 @@
 # NPL Ticket Notifier
 
-A Python-based notification system that monitors the Khalti events website for NPL (Nepal Premier League) ticket availability and sends real-time Telegram notifications when tickets become available.
+A Python-based notification system that monitors the Khalti events API for NPL (Nepal Premier League) ticket availability and sends real-time Telegram notifications (voice + text) when tickets become available.
 
-## Features
+## ✨ Features
 
-- **Real-time Monitoring**: Continuously checks the Khalti events page for ticket updates
-- **Telegram Notifications**: Sends formatted notifications to your Telegram chat
-- **Duplicate Prevention**: Avoids sending multiple notifications for the same ticket
-- **Status Tracking**: Detects different ticket statuses (Available, Filling Fast, Sold Out)
-- **Error Handling**: Comprehensive logging and error handling
-- **Configurable**: Easy-to-customize settings
-- **JavaScript Rendering Support**: Works with Playwright for dynamic content (optional but recommended)
+- ⚡ **Fast Monitoring**: Checks every 30 seconds locally, every 1 minute on GitHub Actions
+- 🔊 **Voice Alerts**: Automatic text-to-speech notifications via Telegram
+- 📱 **Text Messages**: Formatted detailed ticket information
+- 🎯 **Smart Detection**: Only alerts for NEW tickets (prevents duplicates)
+- 🌐 **API-Based**: Direct Khalti API integration (no HTML scraping issues)
+- 🤖 **GitHub Actions**: Runs 24/7 automatically - no server needed!
+- 💾 **Ticket History**: Persistent history prevents repeated notifications
+- 🛡️ **Secure**: No hardcoded credentials, uses environment variables
+- 📊 **Logging**: Comprehensive logs for monitoring and troubleshooting
+- 🎨 **Group Support**: Send alerts to personal chat or group
+
+## 🚀 Quick Start
+
+**30 seconds to set up:**
+
+1. **Get Telegram credentials:**
+   - Bot Token: [@BotFather](https://t.me/botfather) → `/newbot`
+   - Chat ID: [@userinfobot](https://t.me/userinfobot) (or group ID from API)
+
+2. **Configure `.env`:**
+   ```env
+   KHALTI_EVENT_ID=ET25AMY4AUYM
+   TELEGRAM_BOT_TOKEN=your_token
+   TELEGRAM_CHAT_ID=your_chat_id
+   CHECK_INTERVAL_SECONDS=30
+   ```
+
+3. **Run:**
+   ```bash
+   python main.py
+   ```
+
+**Or deploy to GitHub Actions** for 24/7 automatic monitoring!
 
 ## Prerequisites
 
-- Python 3.7+
-- Telegram Bot Token (create via [@BotFather](https://t.me/botfather))
-- Your Telegram Chat ID
+- Python 3.11+
+- Telegram Bot (get from [@BotFather](https://t.me/botfather))
+- Active internet connection
 
 ## Installation
 

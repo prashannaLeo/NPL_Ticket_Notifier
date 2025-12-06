@@ -39,10 +39,17 @@ Create a `.env` file in the project root with your credentials:
 ```env
 KHALTI_EVENT_ID=ET25AMY4AUYM
 TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
-TELEGRAM_CHAT_ID=YOUR_CHAT_ID_HERE
-CHECK_INTERVAL_SECONDS=60
+TELEGRAM_CHAT_ID=YOUR_CHAT_ID_HERE  # Can be personal (positive) or group (negative)
+CHECK_INTERVAL_SECONDS=30           # Checks every 30 seconds for faster detection
 TIMEOUT_SECONDS=10
 ```
+
+**For Group Chat:**
+- Add bot to your group
+- Send any message in the group
+- Visit: `https://api.telegram.org/botYOUR_BOT_TOKEN/getUpdates`
+- Find `chat.id` (negative number like `-1001234567890`)
+- Use that negative ID in `TELEGRAM_CHAT_ID`
 
 **Or copy from template:**
 ```bash
@@ -99,10 +106,14 @@ Edit the `.env` file to customize:
 ```env
 KHALTI_EVENT_ID=ET25AMY4AUYM          # Event to monitor
 TELEGRAM_BOT_TOKEN=your_token         # Your Telegram bot token
-TELEGRAM_CHAT_ID=your_chat_id         # Your Telegram chat ID
-CHECK_INTERVAL_SECONDS=60             # How often to check (in seconds)
+TELEGRAM_CHAT_ID=your_chat_id         # Your chat ID (group or personal)
+CHECK_INTERVAL_SECONDS=30             # Check every 30 seconds (faster detection)
 TIMEOUT_SECONDS=10                    # API timeout (in seconds)
 ```
+
+**Default: 30-second check interval** - Optimized for high-demand tickets with expected crowd
+- Local: Every 30 seconds
+- GitHub Actions: Every 1 minute
 
 **To monitor a different event:**
 1. Go to https://events.khalti.com

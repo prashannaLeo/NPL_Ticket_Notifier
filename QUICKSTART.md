@@ -41,8 +41,8 @@ print("""
 
    2025-12-06 21:13:58,429 - __main__ - INFO - Starting NPL Ticket Notifier...
    2025-12-06 21:13:58,429 - __main__ - INFO - Monitoring event: ET25AMY4AUYM
-   2025-12-06 21:13:58,429 - __main__ - INFO - Check interval: 60 seconds
-   ✓ Ready! Checking every 60 seconds
+   2025-12-06 21:13:58,429 - __main__ - INFO - Check interval: 30 seconds
+   ✓ Ready! Checking every 30 seconds
 
 
 4. WHEN TICKETS ARE FOUND:
