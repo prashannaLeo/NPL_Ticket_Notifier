@@ -19,7 +19,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0  # Full history to access notified_tickets.json
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,49 +33,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Download previous ticket history
+        continue-on-error: true
+        run: |
+          if git log --all --oneline -- notified_tickets.json | head -1; then
+            git show HEAD:notified_tickets.json > notified_tickets.json 2>/dev/null || true
+            echo "✓ Loaded previous ticket history"
+          else
+            echo "ℹ️  No previous history found (first run)"
+          fi
+
       - name: Run ticket notifier check
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           KHALTI_EVENT_ID: ${{ secrets.KHALTI_EVENT_ID }}
         run: |
-          python -c "
-          import os
-          import sys
-          from scraper import KhaltiScraper
-          from telegram_notifier import TelegramNotifier
-          from voice_notifier import VoiceNotifier
-          
-          # Load environment variables
-          bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-          chat_id = os.getenv('TELEGRAM_CHAT_ID')
-          event_id = os.getenv('KHALTI_EVENT_ID')
-          
-          if not all([bot_token, chat_id, event_id]):
-              print('ERROR: Missing required environment variables')
-              sys.exit(1)
-          
-          # Initialize notifiers
-          scraper = KhaltiScraper(event_id)
-          text_notifier = TelegramNotifier(bot_token, chat_id)
-          voice_notifier = VoiceNotifier(bot_token, chat_id)
-          
-          # Check for available tickets
-          available_tickets = scraper.get_available_tickets()
-          
-          if available_tickets:
-              print(f'Found {len(available_tickets)} available ticket(s)')
-              for ticket in available_tickets:
-                  # Send voice alert
-                  voice_notifier.send_alert_call(ticket)
-                  import time
-                  time.sleep(1)
-                  # Send text notification
-                  text_notifier.send_ticket_notification(ticket)
-                  time.sleep(1)
-          else:
-              print('No available tickets at this time')
-          "
+          python run_check.py
+
+      - name: Commit ticket history
+        continue-on-error: true
+        run: |
+          git config user.email "github-actions@bot.local"
+          git config user.name "GitHub Actions"
+          git add notified_tickets.json || true
+          git commit -m "Update ticket history [skip ci]" || true
+
+      - name: Push ticket history
+        continue-on-error: true
+        run: |
+          git push origin main || true
 
       - name: Log results
         if: always()

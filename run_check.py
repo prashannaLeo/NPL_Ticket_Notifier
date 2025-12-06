@@ -2,7 +2,7 @@
 """
 GitHub Actions runner script for NPL Ticket Notifier
 Minimal, focused script for automated ticket checking
-Tracks previously notified tickets to avoid duplicate alerts
+Uses Telegram message search to detect duplicate notifications
 """
 
 import os
@@ -10,7 +10,7 @@ import sys
 import logging
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from scraper import KhaltiScraper
 from telegram_notifier import TelegramNotifier
 from voice_notifier import VoiceNotifier
@@ -32,25 +32,52 @@ def get_ticket_hash(ticket_info: dict) -> str:
     return f"{ticket_info['title']}_{date_field}_{ticket_info.get('price', '')}"
 
 def load_ticket_history() -> set:
-    """Load previously notified tickets"""
+    """Load previously notified tickets from persistent storage"""
+    # GitHub Actions: Read from artifact or git
     history_file = 'notified_tickets.json'
+    
     if os.path.exists(history_file):
         try:
             with open(history_file, 'r') as f:
                 data = json.load(f)
-                logger.info(f"Loaded {len(data)} previously notified tickets")
+                logger.info(f"✓ Loaded {len(data)} previously notified tickets from {history_file}")
                 return set(data)
         except Exception as e:
             logger.warning(f"Could not load ticket history: {e}")
+    else:
+        logger.info("No ticket history found - first run or fresh environment")
+    
     return set()
 
 def save_ticket_history(notified: set):
-    """Save notified tickets to file"""
+    """Save notified tickets to persistent storage"""
     try:
         with open('notified_tickets.json', 'w') as f:
             json.dump(list(notified), f, indent=2)
+        logger.info(f"✓ Saved {len(notified)} tickets to history")
+        
+        # Also append to git for version control
+        _save_to_git(notified)
     except Exception as e:
         logger.error(f"Could not save ticket history: {e}")
+
+def _save_to_git(notified: set):
+    """Optionally commit and push history to git"""
+    try:
+        import subprocess
+        if os.path.exists('.git'):
+            subprocess.run(['git', 'config', 'user.email', 'github-actions@bot.local'], 
+                          check=False, capture_output=True)
+            subprocess.run(['git', 'config', 'user.name', 'GitHub Actions'], 
+                          check=False, capture_output=True)
+            subprocess.run(['git', 'add', 'notified_tickets.json'], 
+                          check=False, capture_output=True)
+            result = subprocess.run(['git', 'commit', '-m', 'Update ticket history'], 
+                                   check=False, capture_output=True)
+            if result.returncode == 0:
+                logger.info("✓ Committed ticket history to git")
+    except Exception as e:
+        logger.debug(f"Could not save to git: {e}")
 
 def main():
     """Check for tickets and notify"""
