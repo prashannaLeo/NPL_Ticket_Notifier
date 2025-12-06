@@ -79,5 +79,13 @@ jobs:
       - name: Log results
         if: always()
         run: |
-          echo "Ticket check completed at $(date)"
-          echo "Next check in 60 seconds (GitHub Actions scheduling)"
+          echo "Ticket check completed at $(date)" | tee deploy_log.txt
+          echo "Next check in 60 seconds (GitHub Actions scheduling)" >> deploy_log.txt
+
+      - name: Upload deployment logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-logs-${{ github.run_number }}
+          path: deploy_log.txt
+          retention-days: 7
