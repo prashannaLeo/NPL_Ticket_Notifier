@@ -31,7 +31,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          KHALTI_EVENT_URL: ${{ secrets.KHALTI_EVENT_URL }}
+          KHALTI_EVENT_ID: ${{ secrets.KHALTI_EVENT_ID }}
         run: |
           python run_check.py
 
