@@ -1,0 +1,44 @@
+name: Continuous Ticket Monitoring
+
+on:
+  schedule:
+    # Run every 1 minutes for more frequent checks
+    - cron: '*/1 * * * *'
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1  # 1-minute interval minus buffer
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check for available tickets
+        id: check
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          KHALTI_EVENT_URL: ${{ secrets.KHALTI_EVENT_URL }}
+        run: |
+          python run_check.py
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: check-logs-${{ github.run_number }}
+          path: check_log.txt
+          retention-days: 7

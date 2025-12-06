@@ -1,0 +1,83 @@
+name: Deploy NPL Ticket Notifier
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  schedule:
+    # Run the notifier every 60 seconds throughout the day
+    - cron: '* * * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-tickets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55  # Stop before GitHub's 60-minute limit for scheduled jobs
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run ticket notifier check
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          KHALTI_EVENT_ID: ${{ secrets.KHALTI_EVENT_ID }}
+        run: |
+          python -c "
+          import os
+          import sys
+          from scraper import KhaltiScraper
+          from telegram_notifier import TelegramNotifier
+          from voice_notifier import VoiceNotifier
+          
+          # Load environment variables
+          bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+          chat_id = os.getenv('TELEGRAM_CHAT_ID')
+          event_id = os.getenv('KHALTI_EVENT_ID')
+          
+          if not all([bot_token, chat_id, event_id]):
+              print('ERROR: Missing required environment variables')
+              sys.exit(1)
+          
+          # Initialize notifiers
+          scraper = KhaltiScraper(event_id)
+          text_notifier = TelegramNotifier(bot_token, chat_id)
+          voice_notifier = VoiceNotifier(bot_token, chat_id)
+          
+          # Check for available tickets
+          available_tickets = scraper.get_available_tickets()
+          
+          if available_tickets:
+              print(f'Found {len(available_tickets)} available ticket(s)')
+              for ticket in available_tickets:
+                  # Send voice alert
+                  voice_notifier.send_alert_call(ticket)
+                  import time
+                  time.sleep(1)
+                  # Send text notification
+                  text_notifier.send_ticket_notification(ticket)
+                  time.sleep(1)
+          else:
+              print('No available tickets at this time')
+          "
+
+      - name: Log results
+        if: always()
+        run: |
+          echo "Ticket check completed at $(date)"
+          echo "Next check in 60 seconds (GitHub Actions scheduling)"
