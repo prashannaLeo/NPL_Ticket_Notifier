@@ -2,15 +2,16 @@
 
 ## 🎯 What This Does
 
-Monitors the Khalti events website for NPL cricket tickets and automatically sends you a **Telegram notification** as soon as tickets become available.
+Monitors the Khalti events API for NPL cricket tickets and automatically sends you a **Telegram notification** as soon as tickets become available.
 
 ## ✅ Current Status
 
 ✓ **The application is fully working and ready to use!**
 
 The script can:
-- Monitor the Khalti events page continuously
+- Monitor the Khalti API continuously for ticket availability
 - Send formatted Telegram messages with ticket details
+- Send voice alerts via Telegram when tickets appear
 - Log all activities for troubleshooting
 - Avoid duplicate notifications
 
@@ -31,18 +32,22 @@ The script can:
 2. Click "Start"
 3. Copy the Chat ID number it shows (like: `123456789`)
 
-### Step 2: Update config.py
+### Step 2: Set Up Environment Variables
 
-Open `config.py` and update these lines:
+Create a `.env` file in the project root with your credentials:
 
-```python
-TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # <- Replace with your token from BotFather
-TELEGRAM_CHAT_ID = "YOUR_CHAT_ID_HERE"      # <- Replace with your Chat ID
+```env
+KHALTI_EVENT_ID=ET25AMY4AUYM
+TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
+TELEGRAM_CHAT_ID=YOUR_CHAT_ID_HERE
+CHECK_INTERVAL_SECONDS=60
+TIMEOUT_SECONDS=10
 ```
 
-**Verify it worked:**
+**Or copy from template:**
 ```bash
-python validate_config.py
+Copy-Item .env.example .env
+# Then edit .env and add your credentials
 ```
 
 ### Step 3: Run the Notifier
@@ -54,7 +59,8 @@ python main.py
 You should see:
 ```
 Starting NPL Ticket Notifier...
-Monitoring: https://events.khalti.com/events/ET25AMY4AUYM?sub_event=true
+Monitoring event: ET25AMY4AUYM
+API endpoint: https://khalti.com/api/e5/events/ET25AMY4AUYM/children/
 Check interval: 60 seconds
 Checking for available tickets...
 ```
@@ -67,7 +73,7 @@ That's it! The notifier is now running and will send you a Telegram message when
 
 ## 📱 What You'll Receive
 
-When tickets are found, you'll get a Telegram message like:
+When tickets are found, you'll get a Telegram **voice alert** and a message like:
 
 ```
 🎫 NPL TICKET ALERT!
@@ -75,35 +81,33 @@ When tickets are found, you'll get a Telegram message like:
 Event: NPL Season Ticket 2025
 Dates: Mon, 17 Nov - Sat, 13 Dec
 Venue: TU Cricket Ground, Kritipur
-Status: Filling Fast
+Status: Available
 Price: Rs. 15,000
 
 🔗 Get your tickets now:
-https://events.khalti.com/events/ET25AMY4AUYM?sub_event=true
+https://events.khalti.com/events/ET25AMY4AUYM
 ```
+
+Plus an automatic voice message will play saying the ticket alert!
 
 ---
 
-## ⚙️ Advanced Options
+## ⚙️ Configuration Options
 
-### Change Check Frequency
+Edit the `.env` file to customize:
 
-Edit `config.py`:
-```python
-CHECK_INTERVAL_SECONDS = 30  # Check every 30 seconds instead of 60
+```env
+KHALTI_EVENT_ID=ET25AMY4AUYM          # Event to monitor
+TELEGRAM_BOT_TOKEN=your_token         # Your Telegram bot token
+TELEGRAM_CHAT_ID=your_chat_id         # Your Telegram chat ID
+CHECK_INTERVAL_SECONDS=60             # How often to check (in seconds)
+TIMEOUT_SECONDS=10                    # API timeout (in seconds)
 ```
 
-### Enable Full-Power Monitoring (RECOMMENDED)
-
-The Khalti website uses advanced JavaScript to display tickets. For the best results, install Playwright:
-
-```bash
-pip install playwright
-python setup_playwright.py
-python main.py
-```
-
-This enables the scraper to properly render the page and find tickets more reliably.
+**To monitor a different event:**
+1. Go to https://events.khalti.com
+2. Find the event URL (e.g., `...ET25AMY4AUYM...`)
+3. Copy the event ID and update `KHALTI_EVENT_ID` in `.env`
 
 ---
 
@@ -111,48 +115,54 @@ This enables the scraper to properly render the page and find tickets more relia
 
 | File | Purpose |
 |------|---------|
-| `config.py` | **Your configuration** (bot token, chat ID) |
+| `.env` | **Your configuration** (credentials and settings) |
+| `.env.example` | Template for `.env` |
 | `main.py` | The main notifier script |
-| `scraper.py` | Fetches and parses ticket data |
-| `telegram_notifier.py` | Sends Telegram messages |
-| `validate_config.py` | Checks if everything is set up correctly |
+| `scraper.py` | Fetches ticket data from Khalti API |
+| `telegram_notifier.py` | Sends formatted text messages |
+| `voice_notifier.py` | Sends voice alerts |
+| `config.py` | Loads settings from `.env` |
 | `ticket_notifier.log` | Detailed activity log |
 
 ---
 
 ## 🔧 Troubleshooting
 
-### "ModuleNotFoundError: No module named 'requests'"
+### "ModuleNotFoundError: No module named 'dotenv'"
 
-**Solution:** Use the virtual environment:
+**Solution:** Install dependencies:
 ```bash
-.\venv\Scripts\activate
-python main.py
+pip install -r requirements.txt
 ```
 
-Or:
+Or manually:
 ```bash
-.\venv\bin\python main.py
+pip install python-dotenv requests gtts urllib3
 ```
 
-### "No tickets found on page"
+### ".env file not found" or "Missing credentials"
 
-This is normal if:
-- All tickets are sold out (check Khalti site manually)
-- Playwright isn't installed (see "Enable Full-Power Monitoring" above)
-- The page structure changed (rare, will be updated)
+**Solution:** Create `.env` file with your credentials:
+```bash
+Copy-Item .env.example .env
+```
+
+Then edit `.env` and add your Telegram bot token and chat ID.
+
+### "No tickets found on page" / "Available: 0"
+
+This is normal if all tickets are sold out. Check manually on Khalti to verify.
 
 ### Not receiving Telegram messages
 
 **Check:**
-1. Open `config.py` - Verify your bot token and chat ID are correct (no quotes around numbers!)
-2. Run: `python validate_config.py` - Look for ✓ marks
-3. Check the log: `Get-Content ticket_notifier.log -Wait`
-4. Make sure the Telegram bot is allowed to message you
+1. Verify `.env` has correct bot token and chat ID
+2. Make sure you've messaged the bot first (click Start)
+3. Check the log: `Get-Content ticket_notifier.log -Tail 50`
 
 ### Connection timeout errors
 
-This means the Khalti website isn't responding. Usually temporary. The script will automatically retry.
+The Khalti API isn't responding. This is usually temporary. The script will automatically retry every `CHECK_INTERVAL_SECONDS`.
 
 ---
 
@@ -163,27 +173,35 @@ This means the Khalti website isn't responding. Usually temporary. The script wi
    Start-Process python -ArgumentList "main.py"
    ```
 
-2. **Run at startup**: Add to Windows Task Scheduler to run automatically when you start your computer
+2. **Run at startup**: Add to Windows Task Scheduler to run automatically
 
-3. **Multiple events**: Edit `KHALTI_EVENT_URL` in `config.py` to monitor different events
-
-4. **Check logs**: The `ticket_notifier.log` file shows everything the script did:
+3. **Check logs**: See what the script is doing:
    ```bash
    Get-Content ticket_notifier.log -Tail 20 -Wait
+   ```
+
+4. **Test voice alerts**: Run:
+   ```bash
+   python test_voice_alerts.py
+   ```
+
+5. **Test entire system**: Run:
+   ```bash
+   python test_integration.py
    ```
 
 ---
 
 ## ❓ Still Need Help?
 
-1. Check the log file: `ticket_notifier.log`
-2. Run the validator: `python validate_config.py`
-3. Try installing Playwright: `pip install playwright && python setup_playwright.py`
+1. **Check the log file:** `ticket_notifier.log` shows everything
+2. **Test your setup:** `python test_scraper.py`
+3. **See documentation:** `README.md` or `VOICE_ALERTS.md`
 
 ---
 
 ## 🎉 You're All Set!
 
-Your NPL ticket notifier is now running. You'll receive a Telegram notification the moment tickets become available!
+Your NPL ticket notifier is now running. You'll receive a voice alert and Telegram notification the moment tickets become available!
 
 Press `Ctrl+C` to stop at any time.
