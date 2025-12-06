@@ -65,12 +65,7 @@ A Python-based notification system that monitors the Khalti events API for NPL (
    pip install -r requirements.txt
    ```
 
-4. **(Recommended) Install Playwright for JavaScript rendering**:
-   ```bash
-   pip install playwright
-   python setup_playwright.py
-   ```
-   This enables the scraper to work with the Khalti site's client-side rendered content.
+   This installs: `requests`, `python-dotenv`, `gtts` (for voice alerts)
 
 ## Configuration
 
@@ -116,43 +111,44 @@ A Python-based notification system that monitors the Khalti events API for NPL (
 
 ```
 NPL_ticket_notifier/
-├── main.py                 # Main script with monitoring loop
-├── scraper.py             # Web scraper for Khalti events
-├── telegram_notifier.py   # Telegram notification handler
-├── config.py              # Configuration settings
-├── requirements.txt       # Python dependencies
-├── setup_playwright.py    # Playwright setup script
-├── ticket_notifier.log    # Log file (generated)
-├── SETUP.md              # Detailed setup guide
-└── README.md             # This file
+├── main.py                    # Main script with monitoring loop
+├── scraper.py                 # Khalti API scraper
+├── telegram_notifier.py       # Text message notifications
+├── voice_notifier.py          # Voice alert generation (gTTS)
+├── config.py                  # Configuration loader
+├── run_check.py               # GitHub Actions runner
+├── requirements.txt           # Python dependencies
+├── notified_tickets.json      # Ticket history (auto-managed)
+├── ticket_notifier.log        # Activity log (generated)
+├── .github/workflows/         # GitHub Actions automation
+├── SETUP.md                   # Detailed setup guide
+└── README.md                  # This file
 ```
 
 ## How It Works
 
-1. **Scraper Module**: Uses BeautifulSoup to parse HTML, with optional Playwright for JavaScript rendering
-2. **Parser**: Extracts ticket information (title, dates, venue, status, price)
-3. **Notifier**: Sends formatted messages via Telegram Bot API
-4. **Main Loop**: Continuously monitors with configurable intervals
-5. **Deduplication**: Tracks already-notified tickets to avoid spam
+1. **API Scraper**: Fetches live ticket data from Khalti API (`/api/e5/events/{EVENT_ID}/children/`)
+2. **Ticket Parser**: Extracts title, dates, venue, price, and availability status
+3. **History Check**: Compares against `notified_tickets.json` to detect NEW tickets only
+4. **Notifications**: Sends voice alert + text message via Telegram
+5. **Persistent Storage**: Saves ticket hash to prevent duplicate notifications
+6. **Continuous Monitoring**: Checks every 30 seconds (local) or 1 minute (GitHub Actions)
 
-## Note on Khalti Website
+## API-Based Approach
 
-The Khalti events website uses **client-side rendering** (React/Next.js framework). For optimal results:
-
-- **With Playwright** (recommended): The scraper can render JavaScript and extract ticket data reliably
-- **Without Playwright**: The scraper attempts static HTML parsing but may not find tickets
-
-**Recommendation**: Install Playwright for best results:
-```bash
-pip install playwright
-python setup_playwright.py
-```
+Unlike HTML scraping, this uses the direct Khalti API:
+- ✅ **Reliable**: Direct data source, not affected by page structure changes
+- ✅ **Fast**: JSON response is cleaner than HTML parsing
+- ✅ **Simple**: No browser automation needed
+- ✅ **Efficient**: Lower resource usage
 
 ## Log File
 
-The script creates a `ticket_notifier.log` file with detailed information about:
-- When checks are performed
-- Tickets found
+The script creates `ticket_notifier.log` with:
+- Ticket check timestamps
+- Available tickets found
+- Notification status
+- Error messages for troubleshooting
 - Notifications sent
 - Any errors encountered
 
@@ -164,25 +160,24 @@ Get-Content -Path ticket_notifier.log -Wait
 ## Troubleshooting
 
 ### No notifications received
-- Verify `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `config.py`
+- Verify `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env`
 - Check `ticket_notifier.log` for error messages
-- Ensure the bot can send messages (check Telegram privacy settings)
+- Ensure the bot can send messages (add bot to chat first)
+- For groups: Verify you're using the negative chat ID
 
-### "No tickets found on page"
-- This is normal if:
-  - Playwright isn't installed (install it with: `pip install playwright && python setup_playwright.py`)
-  - All tickets are currently sold out
-  - The Khalti website structure has changed
+### No tickets found
+- Check Khalti website manually to verify tickets are available
+- Ensure `KHALTI_EVENT_ID` is correct
+- Check API response: `https://khalti.com/api/e5/events/{EVENT_ID}/children/`
 
-### Connection issues
+### Connection timeout errors
 - Check your internet connection
-- Verify the Khalti URL is accessible
-- Adjust `TIMEOUT_SECONDS` in config if the site is slow
+- Adjust `TIMEOUT_SECONDS` in `.env` if API is slow
+- GitHub Actions runs from US servers (may have latency)
 
-### Playwright installation fails
-- Ensure you have a compatible browser available
-- Try: `python -m playwright install chromium`
-- Check [Playwright documentation](https://playwright.dev/python/) for your OS
+### Duplicate notifications still received
+- Delete `notified_tickets.json` to reset history
+- Check if `notified_tickets.json` is being saved (check logs)
 
 ## License
 
@@ -190,4 +185,8 @@ MIT License
 
 ## Support
 
-For issues or questions, check the log file first for detailed error messages.
+For issues, check:
+1. `ticket_notifier.log` for detailed error messages
+2. GitHub Actions logs in your repository
+3. Verify credentials in `.env` or GitHub Secrets
+

@@ -16,12 +16,12 @@
 - **`.gitignore`** - Prevents accidental credential commits
 
 ### 4. Updated Dependencies
-- **`requirements.txt`** - Removed unnecessary packages (beautifulsoup4, playwright)
-- Production-ready with only essential packages:
-  - requests
-  - python-dotenv
-  - urllib3
-  - gtts
+- **`requirements.txt`** - Minimal production packages only:
+  - `requests` - HTTP requests
+  - `python-dotenv` - Environment variable loading
+  - `urllib3` - Connection retries
+  - `gtts` - Text-to-speech for voice alerts
+- Removed: beautifulsoup4 (no longer needed), playwright (uses direct API)
 
 ### 5. Created Comprehensive Documentation
 - **`DEPLOYMENT.md`** - Complete deployment guide
@@ -57,34 +57,30 @@ NPL_ticket_notifier/
 │   └── requirements.txt            (Updated: Cleaned)
 │
 ├── 📚 Documentation (New/Updated)
-│   ├── DEPLOYMENT.md               (New: Complete guide)
-│   ├── GITHUB_ACTIONS_SETUP.md     (New: GA guide)
-│   ├── CLEANUP_GUIDE.md            (New: Files to remove)
-│   ├── VOICE_SETUP.md              (Existing)
-│   ├── VOICE_ALERTS.md             (Existing)
-│   ├── FEATURES.md                 (Existing)
-│   └── README.md                   (Existing)
+│   ├── GITHUB_ACTIONS_SETUP.md     (Setup guide)
+│   ├── VOICE_SETUP.md              (Voice alerts)
+│   ├── VOICE_ALERTS.md             (Voice documentation)
+│   ├── FEATURES.md                 (Feature list)
+│   ├── TICKET_TRACKING_GUIDE.md    (History tracking)
+│   ├── QUICKSTART.md               (Quick start)
+│   └── README.md                   (Main documentation)
 │
-├── 🧪 Helper Scripts (New)
-│   ├── check_deployment_ready.py   (New: Verification)
-│   ├── setup_github_actions.sh     (New: Linux/Mac setup)
-│   ├── setup_github_actions.bat    (New: Windows setup)
-│   └── run_check.py                (New: GA execution)
+├── 🧪 Helper Scripts
+│   ├── run_check.py                (GitHub Actions executor)
+│   ├── config.py                   (Configuration loader)
+│   └── check_deployment_ready.py   (Verification tool)
 │
-└── 📁 Debug Files (Recommended for removal)
-    ├── analyze_html.py             ⚠️ Remove (not needed)
-    ├── investigate.py              ⚠️ Remove (not needed)
-    ├── test_api.py                 ⚠️ Remove (not needed)
-    ├── setup_playwright.py          ⚠️ Remove (not needed)
-    └── validate_config.py           ⚠️ Remove (not needed)
+└── 🔧 GitHub Automation
+    ├── .github/workflows/deploy.yml     (Push trigger)
+    └── .github/workflows/monitor.yml    (Every 1 minute)
 ```
 
 ## 🚀 How GitHub Actions Works
 
 ```
 ┌─────────────────────────────────────────────┐
-│      Push code to GitHub                    │
-│      OR scheduled trigger (every 5 min)     │
+│   Push code to GitHub                       │
+│   OR scheduled trigger (every 1 minute)     │
 └────────────┬────────────────────────────────┘
              │
              ↓
@@ -97,7 +93,7 @@ NPL_ticket_notifier/
 ┌─────────────────────────────────────────────┐
 │  Setup Python environment                   │
 │  Install dependencies from requirements.txt │
-│  Load secrets (TELEGRAM_BOT_TOKEN, etc)     │
+│  Load secrets & environment variables       │
 └────────────┬────────────────────────────────┘
              │
              ↓
