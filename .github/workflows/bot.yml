@@ -1,0 +1,62 @@
+name: NPL Ticket Bot - Continuous
+
+on:
+  schedule:
+    # Run every 30 minutes for continuous bot availability
+    # Each run lasts 30 minutes, creating rolling coverage
+    - cron: '*/30 * * * *'
+  workflow_dispatch:  # Allow manual trigger
+  push:
+    branches:
+      - main
+    paths:
+      - 'npl_notifier/bot/**'
+      - 'run_bot.py'
+      - 'requirements.txt'
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4  # Keep jobs short, they restart every 5 minutes
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Start Persistent Bot (30 min session)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          KHALTI_EVENT_ID: ${{ secrets.KHALTI_EVENT_ID }}
+        run: |
+          echo "Starting NPL Ticket Bot (persistent mode)..."
+          python -m npl_notifier.bot.github_persistent_bot || true
+          echo "Bot session completed"
+          
+      - name: Log bot activity
+        if: always()
+        run: |
+          if [ -f telegram_bot.log ]; then
+            echo "=== Bot Activity Log ===" | tee bot_activity.txt
+            tail -20 telegram_bot.log >> bot_activity.txt || true
+          else
+            echo "No bot activity logged yet" > bot_activity.txt
+          fi
+          
+      - name: Upload bot logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-logs-${{ github.run_number }}
+          path: bot_activity.txt
+          retention-days: 7
