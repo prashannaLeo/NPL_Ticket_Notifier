@@ -103,7 +103,7 @@ def main():
     # Config validation
     print("🔐 CONFIGURATION CHECK:")
     try:
-        from config import KHALTI_EVENT_URL
+        from npl_notifier.core.config import KHALTI_EVENT_URL
         print(f"  ✓ KHALTI_EVENT_URL configured")
     except:
         print(f"  ✗ KHALTI_EVENT_URL not configured")

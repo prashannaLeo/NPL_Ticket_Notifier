@@ -3,10 +3,10 @@ Integration test - Demonstrates voice alerts + text notifications together
 """
 
 import logging
-from scraper import KhaltiScraper
-from telegram_notifier import TelegramNotifier
-from voice_notifier import VoiceNotifier
-from config import KHALTI_EVENT_ID, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from npl_notifier.core.scraper import KhaltiScraper
+from npl_notifier.core.telegram_notifier import TelegramNotifier
+from npl_notifier.core.voice_notifier import VoiceNotifier
+from npl_notifier.core.config import KHALTI_EVENT_ID, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 logging.basicConfig(
     level=logging.INFO,

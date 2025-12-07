@@ -1,21 +1,23 @@
+#!/usr/bin/env python3
 """
-Main notifier script - Monitors Khalti events and sends Telegram notifications
+Main entry point - Start continuous ticket monitoring
+Usage: python -m npl_notifier.scripts.monitor
 """
 
+import sys
 import logging
-import time
-import json
-import os
-from datetime import datetime
-from npl_notifier.core.scraper import KhaltiScraper
-from npl_notifier.core.telegram_notifier import TelegramNotifier
-from npl_notifier.core.voice_notifier import VoiceNotifier
 from npl_notifier.core.config import (
     KHALTI_EVENT_ID,
     TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHAT_ID,
-    CHECK_INTERVAL_SECONDS
+    CHECK_INTERVAL_SECONDS,
 )
+from npl_notifier.core.scraper import KhaltiScraper
+from npl_notifier.core.telegram_notifier import TelegramNotifier
+from npl_notifier.core.voice_notifier import VoiceNotifier
+import time
+import json
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -36,7 +38,7 @@ class TicketNotifier:
         self.notifier = TelegramNotifier(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
         self.voice_notifier = VoiceNotifier(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
         self.history_file = 'notified_tickets.json'
-        self.notified_tickets = self._load_ticket_history()  # Load from persistent storage
+        self.notified_tickets = self._load_ticket_history()
 
     def _load_ticket_history(self) -> set:
         """Load previously notified tickets from file"""
@@ -60,7 +62,6 @@ class TicketNotifier:
 
     def get_ticket_hash(self, ticket_info: dict) -> str:
         """Create a unique hash for a ticket to avoid duplicate notifications"""
-        # Support both old and new field names
         date_field = ticket_info.get('dates') or ticket_info.get('date', '')
         return f"{ticket_info['title']}_{date_field}_{ticket_info.get('price', '')}"
 
@@ -78,22 +79,18 @@ class TicketNotifier:
                 for ticket in available_tickets:
                     ticket_hash = self.get_ticket_hash(ticket)
 
-                    # Only notify about NEW tickets (not seen before)
                     if ticket_hash not in self.notified_tickets:
                         logger.info(f"NEW TICKET FOUND: {ticket['title']}")
                         new_tickets_found = True
                         
-                        # Send voice alert first (urgent)
                         self.voice_notifier.send_alert_call(ticket)
                         time.sleep(0.5)
                         
-                        # Then send detailed message
                         if self.notifier.send_ticket_notification(ticket):
                             self.notified_tickets.add(ticket_hash)
-                            self._save_ticket_history()  # Persist the new ticket
-                        time.sleep(1)  # Rate limit to avoid Telegram API issues
+                            self._save_ticket_history()
+                        time.sleep(1)
                     else:
-                        # Same ticket as before - no notification
                         logger.debug(f"Already notified about: {ticket['title']}")
                 
                 if not new_tickets_found:
@@ -122,11 +119,15 @@ class TicketNotifier:
             logger.error(f"Fatal error: {e}", exc_info=True)
 
 
-if __name__ == "__main__":
-    # Validate configuration
+def main():
+    """Entry point"""
     if TELEGRAM_BOT_TOKEN == "YOUR_BOT_TOKEN_HERE" or TELEGRAM_CHAT_ID == "YOUR_CHAT_ID_HERE":
-        logger.error("Please configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in config.py")
-        exit(1)
+        logger.error("Please configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env")
+        sys.exit(1)
 
     notifier = TicketNotifier()
     notifier.run()
+
+
+if __name__ == "__main__":
+    main()

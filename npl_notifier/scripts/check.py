@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-GitHub Actions runner script for NPL Ticket Notifier
-Minimal, focused script for automated ticket checking
-Uses Telegram message search to detect duplicate notifications
+GitHub Actions entry point - Check for available tickets
+Usage: python -m npl_notifier.scripts.check
 """
 
 import os
@@ -10,36 +9,29 @@ import sys
 import logging
 import json
 import time
-from datetime import datetime, timedelta
 from npl_notifier.core.scraper import KhaltiScraper
 from npl_notifier.core.telegram_notifier import TelegramNotifier
 from npl_notifier.core.voice_notifier import VoiceNotifier
 
-# Fix Unicode encoding for Windows
-if sys.platform == "win32":
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-
-# Setup logging with Unicode support
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('check_log.txt', encoding='utf-8'),
-        logging.StreamHandler(sys.stdout)
+        logging.FileHandler('check_log.txt'),
+        logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
+
 
 def get_ticket_hash(ticket_info: dict) -> str:
     """Create a unique hash for a ticket"""
     date_field = ticket_info.get('dates') or ticket_info.get('date', '')
     return f"{ticket_info['title']}_{date_field}_{ticket_info.get('price', '')}"
 
+
 def load_ticket_history() -> set:
     """Load previously notified tickets from persistent storage"""
-    # GitHub Actions: Read from artifact or git
     history_file = 'notified_tickets.json'
     
     if os.path.exists(history_file):
@@ -55,35 +47,16 @@ def load_ticket_history() -> set:
     
     return set()
 
+
 def save_ticket_history(notified: set):
     """Save notified tickets to persistent storage"""
     try:
         with open('notified_tickets.json', 'w') as f:
             json.dump(list(notified), f, indent=2)
         logger.info(f"✓ Saved {len(notified)} tickets to history")
-        
-        # Also append to git for version control
-        _save_to_git(notified)
     except Exception as e:
         logger.error(f"Could not save ticket history: {e}")
 
-def _save_to_git(notified: set):
-    """Optionally commit and push history to git"""
-    try:
-        import subprocess
-        if os.path.exists('.git'):
-            subprocess.run(['git', 'config', 'user.email', 'github-actions@bot.local'], 
-                          check=False, capture_output=True)
-            subprocess.run(['git', 'config', 'user.name', 'GitHub Actions'], 
-                          check=False, capture_output=True)
-            subprocess.run(['git', 'add', 'notified_tickets.json'], 
-                          check=False, capture_output=True)
-            result = subprocess.run(['git', 'commit', '-m', 'Update ticket history'], 
-                                   check=False, capture_output=True)
-            if result.returncode == 0:
-                logger.info("✓ Committed ticket history to git")
-    except Exception as e:
-        logger.debug(f"Could not save to git: {e}")
 
 def main():
     """Check for tickets and notify"""
@@ -102,9 +75,6 @@ def main():
         logger.error(f"  TELEGRAM_BOT_TOKEN: {'✓' if bot_token else '✗'}")
         logger.error(f"  TELEGRAM_CHAT_ID: {'✓' if chat_id else '✗'}")
         logger.error(f"  KHALTI_EVENT_ID: {'✓' if event_id else '✗'}")
-        return 1
-        logger.error(f"  TELEGRAM_CHAT_ID: {'✓' if chat_id else '✗'}")
-        logger.error(f"  KHALTI_EVENT_URL: {'✓' if khalti_url else '✗'}")
         return 1
     
     try:
@@ -165,6 +135,7 @@ def main():
     except Exception as e:
         logger.error(f"✗ Error: {e}", exc_info=True)
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

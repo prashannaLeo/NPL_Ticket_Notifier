@@ -5,8 +5,8 @@ This allows testing the /tickets command without a full webhook server
 """
 
 import logging
-from telegram_bot import InteractiveBot
-from config import TELEGRAM_BOT_TOKEN, KHALTI_EVENT_ID, TELEGRAM_CHAT_ID
+from npl_notifier.bot.telegram_bot import InteractiveBot
+from npl_notifier.core.config import TELEGRAM_BOT_TOKEN, KHALTI_EVENT_ID, TELEGRAM_CHAT_ID
 
 logging.basicConfig(
     level=logging.INFO,

@@ -3,8 +3,8 @@ Demo script to test voice alert functionality
 """
 
 import logging
-from voice_notifier import VoiceNotifier
-from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from npl_notifier.core.voice_notifier import VoiceNotifier
+from npl_notifier.core.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

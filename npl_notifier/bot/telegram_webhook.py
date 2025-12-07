@@ -9,8 +9,8 @@ import logging
 import json
 import os
 from flask import Flask, request
-from telegram_bot import InteractiveBot
-from config import TELEGRAM_BOT_TOKEN, KHALTI_EVENT_ID
+from npl_notifier.bot.telegram_bot import InteractiveBot
+from npl_notifier.core.config import TELEGRAM_BOT_TOKEN, KHALTI_EVENT_ID
 
 # Setup logging
 logging.basicConfig(

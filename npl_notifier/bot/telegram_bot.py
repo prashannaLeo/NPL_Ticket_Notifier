@@ -5,8 +5,8 @@ Handles user commands like /tickets, /start, etc.
 
 import logging
 import requests
-from scraper import KhaltiScraper
-from config import KHALTI_EVENT_ID, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from npl_notifier.core.scraper import KhaltiScraper
+from npl_notifier.core.config import KHALTI_EVENT_ID, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 logger = logging.getLogger(__name__)
 

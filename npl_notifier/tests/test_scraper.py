@@ -2,7 +2,7 @@
 Test script to verify the setup works
 """
 
-from scraper import KhaltiScraper
+from npl_notifier.core.scraper import KhaltiScraper
 import logging
 
 logging.basicConfig(level=logging.INFO)
