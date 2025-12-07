@@ -2,9 +2,9 @@ name: NPL Ticket Bot - Continuous
 
 on:
   schedule:
-    # Run every minute for near-continuous bot availability
-    # Each run lasts up to 4 minutes, providing constant coverage
-    - cron: '* * * * *'
+    # Run every 5 minutes for continuous bot availability
+    # Each run lasts 50 minutes, creating 10+ overlapping sessions
+    - cron: '*/5 * * * *'
   workflow_dispatch:  # Allow manual trigger
   push:
     branches:
@@ -17,7 +17,7 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 5  # 4 minutes for bot + 1 minute buffer
+    timeout-minutes: 55  # Allow up to 55 minutes (GitHub max for scheduled jobs)
     
     steps:
       - name: Checkout code

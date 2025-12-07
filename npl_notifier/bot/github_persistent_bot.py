@@ -152,9 +152,9 @@ class PersistentBot:
         except Exception as e:
             logger.error(f"Error handling message: {e}")
     
-    def run(self, max_duration_seconds=240):
+    def run(self, max_duration_seconds=3000):
         """Run the bot for a limited duration (GitHub Actions constraint)
-        4 minutes per job × 60 jobs/hour = near-continuous coverage"""
+        50 minutes per job × 12 jobs/hour = always listening with overlap"""
         logger.info("=" * 60)
         logger.info("NPL TICKET NOTIFIER BOT (GitHub Actions - Persistent)")
         logger.info("=" * 60)
