@@ -34,7 +34,7 @@ class PersistentBot:
         self.scraper = KhaltiScraper(event_id)
         self.api_url = f"https://api.telegram.org/bot{bot_token}"
         self.last_update_id = 0
-        self.poll_timeout = 25  # Long polling timeout (GitHub allows up to 30 min)
+        self.poll_timeout = 1  # 1 second timeout for fast response
         
     def get_updates(self):
         """Get new messages from Telegram"""
@@ -152,8 +152,9 @@ class PersistentBot:
         except Exception as e:
             logger.error(f"Error handling message: {e}")
     
-    def run(self, max_duration_seconds=1800):
-        """Run the bot for a limited duration (GitHub Actions constraint)"""
+    def run(self, max_duration_seconds=240):
+        """Run the bot for a limited duration (GitHub Actions constraint)
+        4 minutes per job × 60 jobs/hour = near-continuous coverage"""
         logger.info("=" * 60)
         logger.info("NPL TICKET NOTIFIER BOT (GitHub Actions - Persistent)")
         logger.info("=" * 60)
