@@ -83,15 +83,15 @@ class TicketNotifier:
                         logger.info(f"NEW TICKET FOUND: {ticket['title']}")
                         new_tickets_found = True
                         
-                        # Send voice alert first (urgent)
+                        # Send AGGRESSIVE voice alert with maximum urgency
                         self.voice_notifier.send_alert_call(ticket)
-                        time.sleep(0.5)
+                        time.sleep(2)
                         
-                        # Then send detailed message
-                        if self.notifier.send_ticket_notification(ticket):
+                        # Send urgent multi-part text notification
+                        if self.notifier.send_urgent_alert(ticket):
                             self.notified_tickets.add(ticket_hash)
                             self._save_ticket_history()  # Persist the new ticket
-                        time.sleep(1)  # Rate limit to avoid Telegram API issues
+                        time.sleep(2)  # Rate limit to avoid Telegram API issues
                     else:
                         # Same ticket as before - no notification
                         logger.debug(f"Already notified about: {ticket['title']}")

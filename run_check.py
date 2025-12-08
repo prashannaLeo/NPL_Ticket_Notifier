@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from npl_notifier.core.scraper import KhaltiScraper
 from npl_notifier.core.telegram_notifier import TelegramNotifier
 from npl_notifier.core.voice_notifier import VoiceNotifier
+from npl_notifier.core.enhanced_notifier import notify_ticket_alert
 
 # Fix Unicode encoding for Windows
 if sys.platform == "win32":
@@ -139,20 +140,16 @@ def main():
             
             # Only notify about NEW tickets
             if ticket_hash not in notified_tickets:
-                logger.info("    ⭐ NEW TICKET - Sending alerts...")
+                logger.info("    ⭐ NEW TICKET - Sending MAXIMUM ESCALATION alerts...")
                 new_tickets_found = True
                 
-                # Send voice alert
-                voice_notifier.send_alert_call(ticket)
-                time.sleep(1)
-                
-                # Send text notification
-                text_notifier.send_ticket_notification(ticket)
+                # Use enhanced critical alert system with full escalation
+                notify_ticket_alert(bot_token, chat_id, ticket)
                 
                 # Track this ticket
                 notified_tickets.add(ticket_hash)
                 save_ticket_history(notified_tickets)
-                time.sleep(1)
+                time.sleep(3)
             else:
                 logger.info("    ℹ️  Already notified about this ticket - skipping")
         

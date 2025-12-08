@@ -56,14 +56,44 @@ class VoiceNotifier:
             status = ticket_info.get('status', 'Available')
             price = ticket_info.get('price', 'unknown price')
             
-            # Create urgent voice alert message
-            alert_text = f"URGENT ALERT! {title} is now {status}. Price is {price}. Check your Telegram for details."
+            # Create HIGHLY URGENT voice alert message with repeat emphasis
+            alert_text = f"CRITICAL ALERT! CRITICAL ALERT! {title} tickets are NOW AVAILABLE. Price: {price}. Limited quantity! Go to Khalti NOW! CRITICAL ALERT!"
             
-            logger.info(f"Sending voice alert for: {title}")
-            return self.send_voice_message(alert_text)
+            logger.info(f"Sending URGENT voice alert for: {title}")
+            result = self.send_voice_message(alert_text)
+            
+            # Send loud push notification too
+            self.send_push_notification_alert(ticket_info)
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error sending alert call: {e}")
+            return False
+
+    def send_push_notification_alert(self, ticket_info: dict) -> bool:
+        """Send loud push notification with maximum urgency"""
+        try:
+            url = f"{self.api_url}/sendMessage"
+            
+            title = ticket_info.get('title', 'NPL Ticket')
+            
+            payload = {
+                "chat_id": self.chat_id,
+                "text": "🚨🚨🚨 URGENT! TICKETS AVAILABLE! 🚨🚨🚨\n\n" + 
+                        f"⚡ {title} IS NOW ON SALE\n" +
+                        "⏱️ LIMITED TIME - BUY NOW!\n" +
+                        "🔔 Check full details above",
+                "parse_mode": "HTML"
+            }
+            
+            response = requests.post(url, json=payload, timeout=10)
+            response.raise_for_status()
+            logger.info("Push notification alert sent with maximum urgency")
+            return True
+            
+        except requests.RequestException as e:
+            logger.error(f"Error sending push notification: {e}")
             return False
 
     def send_phone_call_trigger(self) -> bool:

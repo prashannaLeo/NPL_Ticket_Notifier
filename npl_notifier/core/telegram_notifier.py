@@ -51,7 +51,7 @@ class TelegramNotifier:
         price = ticket_info.get('price', 'N/A')
 
         message = f"""
-<b>🎫 NPL TICKET ALERT!</b>
+🚨 <b>URGENT: TICKETS NOW AVAILABLE!</b> 🚨
 
 <b>Event:</b> {title}
 <b>Dates:</b> {dates}
@@ -59,7 +59,44 @@ class TelegramNotifier:
 <b>Status:</b> <u>{status}</u>
 <b>Price:</b> {price}
 
-<b>🔗 Get your tickets now:</b>
+⚡ <b>QUICK ACTION REQUIRED:</b>
+1. Click the link below immediately
+2. Complete purchase in next 2-3 minutes (before sold out)
+3. Use saved payment method for fastest checkout
+
+<b>🔗 BUY NOW (Click here):</b>
 https://events.khalti.com/events/ET25AMY4AUYM?sub_event=true
-"""
+
+⏱️ <b>TIP:</b> Most tickets sell out within 5-10 minutes
+💡 Have payment method saved for instant checkout
+🔔 Multiple reminders will be sent if still available"""
         return message.strip()
+    
+    def send_urgent_alert(self, ticket_info: dict) -> bool:
+        """Send multiple urgent alerts with emphasis on limited availability"""
+        try:
+            # First alert with all details
+            self.send_ticket_notification(ticket_info)
+            
+            # Quick follow-up with purchase reminder (after 2 seconds)
+            import time
+            time.sleep(2)
+            
+            quick_reminder = f"""
+⚡ <b>REMINDER: TICKETS STILL AVAILABLE!</b>
+
+Limited quantity remaining!
+
+<b>🎫 {ticket_info.get('title')}</b>
+<b>Price:</b> {ticket_info.get('price')}
+
+🔗 <a href="https://events.khalti.com/events/ET25AMY4AUYM?sub_event=true"><b>PURCHASE NOW</b></a>
+
+⚠️ These tickets may sell out any moment!"""
+            
+            self.send_message(quick_reminder)
+            logger.info("Urgent alert sent successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Error sending urgent alert: {e}")
+            return False
