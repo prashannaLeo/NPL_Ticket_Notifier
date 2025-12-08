@@ -33,6 +33,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Track notifications sent in THIS run to prevent duplicates within same execution
+NOTIFICATIONS_SENT_THIS_RUN = set()
+
 def get_ticket_hash(ticket_info: dict) -> str:
     """Create a unique hash for a ticket"""
     date_field = ticket_info.get('dates') or ticket_info.get('date', '')
@@ -69,7 +72,7 @@ def save_ticket_history(notified: set):
         logger.error(f"Could not save ticket history: {e}")
 
 def _save_to_git(notified: set):
-    """Optionally commit and push history to git"""
+    """Commit and push history to git with retry logic"""
     try:
         import subprocess
         if os.path.exists('.git'):
@@ -77,14 +80,32 @@ def _save_to_git(notified: set):
                           check=False, capture_output=True)
             subprocess.run(['git', 'config', 'user.name', 'GitHub Actions'], 
                           check=False, capture_output=True)
+            
+            # Pull latest changes first to avoid conflicts
+            subprocess.run(['git', 'pull', 'origin', 'main', '--no-edit'], 
+                          check=False, capture_output=True, timeout=10)
+            
+            # Add and commit
             subprocess.run(['git', 'add', 'notified_tickets.json'], 
                           check=False, capture_output=True)
-            result = subprocess.run(['git', 'commit', '-m', 'Update ticket history'], 
+            result = subprocess.run(['git', 'commit', '-m', 'Update ticket history [skip ci]'], 
                                    check=False, capture_output=True)
+            
             if result.returncode == 0:
-                logger.info("✓ Committed ticket history to git")
+                # Retry push up to 3 times
+                for attempt in range(1, 4):
+                    push_result = subprocess.run(['git', 'push', 'origin', 'main'], 
+                                                check=False, capture_output=True, timeout=10)
+                    if push_result.returncode == 0:
+                        logger.info(f"✓ Pushed ticket history to git (attempt {attempt})")
+                        return True
+                    logger.warning(f"Push attempt {attempt} failed, retrying...")
+                    time.sleep(2)
+                logger.error("✗ Failed to push history after 3 attempts")
+            else:
+                logger.info("No new changes to commit")
     except Exception as e:
-        logger.debug(f"Could not save to git: {e}")
+        logger.warning(f"Could not save to git: {e}")
 
 def main():
     """Check for tickets and notify"""
@@ -103,9 +124,6 @@ def main():
         logger.error(f"  TELEGRAM_BOT_TOKEN: {'✓' if bot_token else '✗'}")
         logger.error(f"  TELEGRAM_CHAT_ID: {'✓' if chat_id else '✗'}")
         logger.error(f"  KHALTI_EVENT_ID: {'✓' if event_id else '✗'}")
-        return 1
-        logger.error(f"  TELEGRAM_CHAT_ID: {'✓' if chat_id else '✗'}")
-        logger.error(f"  KHALTI_EVENT_URL: {'✓' if khalti_url else '✗'}")
         return 1
     
     try:
@@ -138,10 +156,18 @@ def main():
             logger.info(f"    Status: {ticket.get('status')}")
             logger.info(f"    Price: {ticket.get('price')}")
             
+            # Check if already notified in THIS run (prevents immediate duplicates)
+            if ticket_hash in NOTIFICATIONS_SENT_THIS_RUN:
+                logger.info(f"    ⚠️  Already notified about this ticket in current run - skipping")
+                continue
+            
             # Only notify about NEW tickets
             if ticket_hash not in notified_tickets:
                 logger.info("    ⭐ NEW TICKET - Sending MAXIMUM ESCALATION alerts...")
                 new_tickets_found = True
+                
+                # Mark as sent in this run
+                NOTIFICATIONS_SENT_THIS_RUN.add(ticket_hash)
                 
                 # Use enhanced critical alert system with full escalation
                 notify_ticket_alert(bot_token, chat_id, ticket)

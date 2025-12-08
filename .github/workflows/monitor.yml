@@ -30,9 +30,28 @@ jobs:
     - name: Download previous ticket history
       continue-on-error: true
       run: |
-        git fetch origin main 2>/dev/null || true
-        git show origin/main:notified_tickets.json > notified_tickets.json 2>/dev/null || echo "[]" > notified_tickets.json
-        ls -la notified_tickets.json
+        # Fetch with retry logic to handle concurrent access
+        max_attempts=5
+        attempt=1
+        while [ $attempt -le $max_attempts ]; do
+          if git fetch origin main 2>/dev/null; then
+            echo "✓ Fetched latest changes (attempt $attempt)"
+            break
+          fi
+          if [ $attempt -lt $max_attempts ]; then
+            echo "Fetch failed, retrying in 2 seconds..."
+            sleep 2
+          fi
+          attempt=$((attempt+1))
+        done
+        
+        # Try to get history from remote, fallback to local
+        git show origin/main:notified_tickets.json > notified_tickets.json 2>/dev/null || \
+        git show HEAD:notified_tickets.json > notified_tickets.json 2>/dev/null || \
+        echo "[]" > notified_tickets.json
+        
+        echo "Current history file:"
+        cat notified_tickets.json | head -20
         
     - name: Run ticket checker
       env:
@@ -45,12 +64,32 @@ jobs:
       run: |
         git config --local user.email "github-actions@bot.local"
         git config --local user.name "GitHub Actions"
+        
+        # Pull latest changes first to avoid merge conflicts
+        git pull origin main --no-edit 2>/dev/null || true
+        
         git add -f notified_tickets.json
         if git diff --cached --quiet; then
-          echo "No changes to history"
+          echo "✓ No changes to history"
         else
           git commit -m "Update ticket history [skip ci]"
-          git push origin main
+          
+          # Retry push up to 3 times (handle race conditions)
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            if git push origin main; then
+              echo "✓ Pushed history to git (attempt $attempt)"
+              exit 0
+            fi
+            if [ $attempt -lt $max_attempts ]; then
+              echo "Push failed, pulling and retrying in 2 seconds..."
+              sleep 2
+              git pull origin main --no-edit 2>/dev/null || true
+            fi
+            attempt=$((attempt+1))
+          done
+          echo "⚠️ Push may have failed after $max_attempts attempts (likely due to concurrent jobs)"
         fi
       continue-on-error: true
       
